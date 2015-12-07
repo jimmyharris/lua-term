@@ -1,4 +1,4 @@
--- Copyright (c) 2009 Rob Hoelz <rob@hoelzro.net>
+-- Copyright (c) 2011 James Harris <james.russell.harris@gmail.com>
 --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
@@ -18,33 +18,18 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 -- THE SOFTWARE.
 
-local term = require 'term.preinit'
-local sformat = string.format
-local iotype  = io.type
-local stdout  = io.stdout
-
-function term.maketermfunc(sequence_fmt)
-  sequence_fmt = '\027[' .. sequence_fmt
-
-  local func
-
-  func = function(handle, ...)
-    if iotype(handle) ~= 'file' then
-      return func(stdout, handle, ...)
+local result, term = pcall(require, 'term.core')
+if not result then
+    -- Use luaposix's 'slower' implementation of isatty()
+    local P = require 'posix'
+    term = {}
+    -- Fake term.core
+    function term.isatty(fd)
+        local fileno, errmsg = P.fileno(fd)
+        assert( fileno, 'Error: ' .. tostring(errmsg))
+        return (1 == P.isatty(P.fileno(fd)))
     end
 
-    return handle:write(sformat(sequence_fmt, ...))
-  end
-
-  return func
 end
-
-term.colors = require 'term.colors'
-term.cursor = require 'term.cursor'
-
-term.clear    = term.maketermfunc '2J'
-term.cleareol = term.maketermfunc 'K'
-
-term.maketermfunc = nil
 
 return term
